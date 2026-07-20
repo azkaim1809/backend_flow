@@ -11,6 +11,7 @@ class FlowNodeController extends Controller
     //ALL flownode
     public function index($flow)
 {
+    
     $nodes = FlowNode::where('flow_id', $flow)
         ->select(
             'flow_id',
