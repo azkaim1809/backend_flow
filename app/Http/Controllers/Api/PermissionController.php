@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use App\Models\Permissions;
+
 
 class PermissionController extends Controller
 {
@@ -13,8 +15,10 @@ class PermissionController extends Controller
 
     // GET /permissions
     public function index()
+
     {
         $permissions = Permission::with(['role', 'module'])->get();
+
 
         return $this->success($permissions, 'Data permission berhasil diambil');
     }
@@ -28,15 +32,26 @@ class PermissionController extends Controller
             'permission' => 'required|array',
         ]);
 
+
         $permission = Permission::create($validated);
+
+    $permission = Permissions::create([
+        'role_id' => $request->role_id,
+        'module_id' => $request->module_id,
+        'permission' => $request->permission,
+    ]);
+
 
         return $this->success($permission, 'Permission berhasil ditambahkan', 201);
     }
 
     // GET /permissions/{id}
     public function show($id)
+
     {
         $permission = Permission::with(['role', 'module'])->find($id);
+
+
 
         if (!$permission) {
             return $this->notFound('Permission tidak ditemukan');
@@ -47,8 +62,11 @@ class PermissionController extends Controller
 
     // PUT /permissions/{id}
     public function update(Request $request, $id)
+
     {
         $permission = Permission::find($id);
+
+
 
         if (!$permission) {
             return $this->notFound('Permission tidak ditemukan');
@@ -67,8 +85,10 @@ class PermissionController extends Controller
 
     // DELETE /permissions/{id}
     public function destroy($id)
+
     {
         $permission = Permission::find($id);
+
 
         if (!$permission) {
             return $this->notFound('Permission tidak ditemukan');

@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\FlowController;
+use App\Http\Controllers\Api\FlowNodeController;
+
 
 Route::prefix('auth')->group(function () {
 
@@ -23,9 +25,16 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('flows', FlowController::class);
 
     // CRUD Permission
-    Route::get('/permission', [PermissionController::class, 'index']);
-    Route::get('/permission/{id}', [PermissionController::class, 'show']);
-    Route::post('/permission', [PermissionController::class, 'store']);
-    Route::put('/permission/{id}', [PermissionController::class, 'update']);
-    Route::delete('/permission/{id}', [PermissionController::class, 'destroy']);
+    Route::get('/permissions', [PermissionController::class, 'index']);
+    Route::get('/permissions/{id}', [PermissionController::class, 'show']);
+    Route::post('/permissions', [PermissionController::class, 'store']);
+    Route::put('/permissions/{id}', [PermissionController::class, 'update']);
+    Route::delete('/permissions/{id}', [PermissionController::class, 'destroy']);
+
+    // CRUD flownode
+    Route::get('/flows/{flow}/nodes', [FlowNodeController::class, 'index']);
+    Route::post('/flows/{flow}/nodes', [FlowNodeController::class, 'store']);
+    Route::get('/nodes/{node}', [FlowNodeController::class, 'show']);
+    Route::put('/nodes/{node}', [FlowNodeController::class, 'update']);
+    Route::delete('/nodes/{node}', [FlowNodeController::class, 'destroy']);
 });
