@@ -16,6 +16,7 @@ class AuthController extends Controller
 {
     use ApiResponse;
 
+    //nambah user
     public function register(RegisterRequest $request)
     {
         $user = User::create([
@@ -28,6 +29,7 @@ class AuthController extends Controller
         return $this->success(new UserResource($user), 'Register berhasil', 201);
     }
 
+    //login
     public function login(LoginRequest $request)
     {
         if (!$token = JWTAuth::attempt($request->validated())) {
@@ -41,7 +43,7 @@ class AuthController extends Controller
             'user' => new UserResource($user),
         ], 'Login berhasil');
     }
-
+    // logout
     public function logout()
     {
         JWTAuth::invalidate(JWTAuth::getToken());
@@ -49,11 +51,12 @@ class AuthController extends Controller
         return $this->success(null, 'Logout berhasil');
     }
 
+    //profile
     public function profile()
     {
         return $this->success(new UserResource(JWTAuth::user()), 'Profile berhasil diambil');
     }
-
+    // Permissions
     public function permissions()
     {
         $user = JWTAuth::user();
