@@ -3,24 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
-
 class AuthController extends Controller
 {
-    // REGISTER
-    public function register(Request $request)
-    {
-       $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8',
-        ]);
+    use ApiResponse;
 
+    public function register(RegisterRequest $request)
+    {
         $user = User::create([
             'role_id' => 1,
             'name' => $request->name,
@@ -28,70 +25,41 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-       
-
-        return response()->json([
-        'message' => 'Register berhasil',
-        'user' => [
-        'name' => $user->name,
-        'email' => $user->email,
-        'role_id' => $user->role_id,
-    ]
-        ], 201);
+        return $this->success(new UserResource($user), 'Register berhasil', 201);
     }
 
-    // LOGIN
-    public function login(Request $request)
-{
-    $credentials = $request->validate([
-        'email' => 'required|email',
-        'password' => 'required'
-    ]);
+    public function login(LoginRequest $request)
+    {
+        if (!$token = JWTAuth::attempt($request->validated())) {
+            return $this->error('Email atau password salah', 401);
+        }
 
-    if (!$token = JWTAuth::attempt($credentials)) {
-        return response()->json([
-            'message' => 'Email atau Password salah'
-        ], 401);
+        $user = JWTAuth::user();
+
+        return $this->success([
+            'token' => $token,
+            'user' => new UserResource($user),
+        ], 'Login berhasil');
     }
 
-    $user = JWTAuth::user();
+    public function logout()
+    {
+        JWTAuth::invalidate(JWTAuth::getToken());
 
-    return response()->json([
-        'message' => 'Login berhasil',
-        'token' => $token,
-        'user' => [
-            'role_id' => $user->role_id,
-            'name' => $user->name,
-            'email' => $user->email,
-        ]
-    ]);
-}
+        return $this->success(null, 'Logout berhasil');
+    }
 
-    // LOGOUT
-     public function logout()
-{
-    JWTAuth::invalidate(JWTAuth::getToken());
-
-    return response()->json([
-        'message' => 'Logout berhasil'
-    ]);
-}
     public function profile()
     {
-        return response()->json([
-            'message' => 'Profile berhasil diambil',
-            'user' => JWTAuth::user()
-        ]);
+        return $this->success(new UserResource(JWTAuth::user()), 'Profile berhasil diambil');
     }
 
-        //PERMISSIONS
-       public function permissions()
-{
-    try {
-        $user = JWTAuth::user(); // otomatis terisi karena middleware sudah validasi token
+    public function permissions()
+    {
+        $user = JWTAuth::user();
 
         if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+            return $this->error('Unauthorized', 401);
         }
 
         $permissions = DB::table('permissions as p')
@@ -102,17 +70,9 @@ class AuthController extends Controller
             ->orderBy('m.id')
             ->get();
 
-        return response()->json([
-            'message' => 'Permission user berhasil diambil',
+        return $this->success([
             'user' => $user->name,
-            'data' => $permissions
-        ]);
-    } catch (\Throwable $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'line' => $e->getLine(),
-            'file' => $e->getFile()
-        ], 500);
+            'permissions' => $permissions,
+        ], 'Permission user berhasil diambil');
     }
-}
 }
