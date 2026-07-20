@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Permission;
+use App\Models\Permissions;
 
 class PermissionController extends Controller
 {
         //GET
     public function index()
 {
-    $permissions = Permission::with(['role', 'module'])->get();
+    $permissions = Permissions::with(['role', 'module'])->get();
 
     return response()->json([
         'message' => 'Data permission berhasil diambil',
@@ -27,7 +27,7 @@ class PermissionController extends Controller
         'permission' => 'required|array'
     ]);
 
-    $permission = Permission::create([
+    $permission = Permissions::create([
         'role_id' => $request->role_id,
         'module_id' => $request->module_id,
         'permission' => $request->permission,
@@ -41,7 +41,7 @@ class PermissionController extends Controller
     //SHOW
     public function show($id)
 {
-    $permission = Permission::with(['role', 'module'])->find($id);
+    $permission = Permissions::with(['role', 'module'])->find($id);
 
     if (!$permission) {
         return response()->json([
@@ -54,7 +54,7 @@ class PermissionController extends Controller
     //UPDATE
     public function update(Request $request, $id)
 {
-    $permission = Permission::find($id);
+    $permission = Permissions::find($id);
 
     if (!$permission) {
         return response()->json([
@@ -72,7 +72,7 @@ class PermissionController extends Controller
     //DELET
     public function destroy($id)
 {
-    $permission = Permission::find($id);
+    $permission = Permissions::find($id);
 
     if (!$permission) {
         return response()->json([

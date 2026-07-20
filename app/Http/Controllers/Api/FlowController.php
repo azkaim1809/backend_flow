@@ -8,7 +8,7 @@ use App\Models\Flow;
 
 class FlowController extends Controller
 {
-    //
+    //all flow
    public function index()
 {
     $flows = Flow::select(
