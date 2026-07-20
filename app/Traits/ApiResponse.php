@@ -21,4 +21,29 @@ trait ApiResponse
             'errors' => $errors,
         ], $code);
     }
+
+    protected function notFound(string $message = 'Data tidak ditemukan')
+    {
+        return $this->error($message, 404);
+    }
+
+    protected function unauthorized(string $message = 'Unauthenticated')
+    {
+        return $this->error($message, 401);
+    }
+
+    protected function forbidden(string $message = 'Anda tidak memiliki akses')
+    {
+        return $this->error($message, 403);
+    }
+
+    protected function validationError($errors, string $message = 'Data yang dikirim tidak valid')
+    {
+        return $this->error($message, 422, $errors);
+    }
+
+    protected function serverError(string $message = 'Terjadi kesalahan pada server')
+    {
+        return $this->error($message, 500);
+    }
 }
