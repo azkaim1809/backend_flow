@@ -4,17 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Permissions extends Model
+class Permission extends Model
 {
-    protected $table = 'permissions';
+    public $timestamps = false; // tidak ada created_at/updated_at
 
-    public $timestamps = false;
-
-    protected $fillable = [
-        'role_id',
-        'module_id',
-        'permission'
-    ];
+    protected $fillable = ['role_id', 'module_id', 'permission'];
 
     protected $casts = [
         'permission' => 'array',
