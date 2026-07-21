@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\LoadUserPermissions;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,7 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'load.permissions' => LoadUserPermissions::class,
+            'perm'              => CheckPermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

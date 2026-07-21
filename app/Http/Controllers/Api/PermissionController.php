@@ -3,87 +3,93 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use App\Models\Permissions;
+use App\Models\Permission;
+
 
 class PermissionController extends Controller
 {
-        //GET
+    use ApiResponse;
+
+    // GET /permissions
     public function index()
-{
-    $permissions = Permissions::with(['role', 'module'])->get();
 
-    return response()->json([
-        'message' => 'Data permission berhasil diambil',
-        'data' => $permissions
-    ]);
-}
-    //POST
+    {
+        $permissions = Permission::with(['role', 'module'])->get();
+
+
+        return $this->success($permissions, 'Data permission berhasil diambil');
+    }
+
+    // POST /permissions
     public function store(Request $request)
-{
-    $request->validate([
-        'role_id' => 'required|exists:roles,id',
-        'module_id' => 'required|exists:modules,id',
-        'permission' => 'required|array'
-    ]);
+    {
+        $validated = $request->validate([
+            'role_id' => 'required|exists:roles,id',
+            'module_id' => 'required|exists:modules,id',
+            'permission' => 'required|array',
+        ]);
 
-    $permission = Permissions::create([
-        'role_id' => $request->role_id,
-        'module_id' => $request->module_id,
-        'permission' => $request->permission,
-    ]);
 
-    return response()->json([
-        'message' => 'Permission berhasil ditambahkan',
-        'data' => $permission
-    ], 201);
-}
-    //SHOW
+        $permission = Permission::create($validated);
+
+
+
+        return $this->success($permission, 'Permission berhasil ditambahkan', 201);
+    }
+
+    // GET /permissions/{id}
     public function show($id)
-{
-    $permission = Permissions::with(['role', 'module'])->find($id);
 
-    if (!$permission) {
-        return response()->json([
-            'message' => 'Permission tidak ditemukan'
-        ], 404);
+    {
+        $permission = Permission::with(['role', 'module'])->find($id);
+
+
+
+        if (!$permission) {
+            return $this->notFound('Permission tidak ditemukan');
+        }
+
+        return $this->success($permission, 'Detail permission berhasil diambil');
     }
 
-    return response()->json($permission);
-}
-    //UPDATE
+    // PUT /permissions/{id}
     public function update(Request $request, $id)
-{
-    $permission = Permissions::find($id);
 
-    if (!$permission) {
-        return response()->json([
-            'message' => 'Permission tidak ditemukan'
-        ], 404);
+    {
+        $permission = Permission::find($id);
+
+
+
+        if (!$permission) {
+            return $this->notFound('Permission tidak ditemukan');
+        }
+
+        $validated = $request->validate([
+            'role_id' => 'sometimes|exists:roles,id',
+            'module_id' => 'sometimes|exists:modules,id',
+            'permission' => 'sometimes|array',
+        ]);
+
+        $permission->update($validated);
+
+        return $this->success($permission, 'Permission berhasil diupdate');
     }
 
-    $permission->update($request->all());
-
-    return response()->json([
-        'message' => 'Permission berhasil diupdate',
-        'data' => $permission
-    ]);
-}
-    //DELET
+    // DELETE /permissions/{id}
     public function destroy($id)
-{
-    $permission = Permissions::find($id);
 
-    if (!$permission) {
-        return response()->json([
-            'message' => 'Permission tidak ditemukan'
-        ], 404);
+    {
+        $permission = Permission::find($id);
+
+
+        if (!$permission) {
+            return $this->notFound('Permission tidak ditemukan');
+        }
+
+        $permission->delete();
+
+        return $this->success(null, 'Permission berhasil dihapus');
     }
-
-    $permission->delete();
-
-    return response()->json([
-        'message' => 'Permission berhasil dihapus'
-    ]);
-}
 }

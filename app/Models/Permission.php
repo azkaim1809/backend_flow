@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Permissions extends Model
+class Permission extends Model
 {
     public $timestamps = false; // tidak ada created_at/updated_at
 
@@ -23,4 +23,5 @@ class Permissions extends Model
     {
         return $this->belongsTo(Module::class);
     }
+    
 }

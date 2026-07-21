@@ -56,26 +56,5 @@ class AuthController extends Controller
     {
         return $this->success(new UserResource(JWTAuth::user()), 'Profile berhasil diambil');
     }
-    // Permissions
-    public function permissions()
-    {
-        $user = JWTAuth::user();
 
-        if (!$user) {
-            return $this->error('Unauthorized', 401);
-        }
-
-        $permissions = DB::table('permissions as p')
-            ->join('roles as r', 'p.role_id', '=', 'r.id')
-            ->join('modules as m', 'p.module_id', '=', 'm.id')
-            ->where('r.id', $user->role_id)
-            ->select('r.name as role', 'm.name as module', 'p.permission')
-            ->orderBy('m.id')
-            ->get();
-
-        return $this->success([
-            'user' => $user->name,
-            'permissions' => $permissions,
-        ], 'Permission user berhasil diambil');
-    }
 }
