@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\FlowNodeController;
 use App\Http\Controllers\Api\FlowConnectionController;
 use App\Http\Controllers\Api\SimulationController;
 use App\Http\Controllers\Api\NodeExecutionController;
+use App\Http\Controllers\Api\NodeTemplateController;
 
 Route::prefix('auth')->group(function () {
 
@@ -54,6 +55,24 @@ Route::middleware(['auth:api', 'load.permissions'])->group(function () {
                 ->get('/{simulation}/executions', [NodeExecutionController::class, 'index']);
         });
 
+        // ============ TEMPLATES ============
+        Route::prefix('templates')->group(function () {
+
+            Route::middleware('perm:templates,read')
+                ->get('/', [NodeTemplateController::class, 'index']);
+
+            Route::middleware('perm:templates,create')
+                ->post('/', [NodeTemplateController::class, 'store']);
+
+            Route::middleware('perm:templates,read')
+                ->get('/{template}', [NodeTemplateController::class, 'show']);
+
+            Route::middleware('perm:templates,update')
+                ->put('/{template}', [NodeTemplateController::class, 'update']);
+
+            Route::middleware('perm:templates,delete')
+                ->delete('/{template}', [NodeTemplateController::class, 'destroy']);
+        });
     // ============ FLOWS ============
     Route::prefix('flows')->group(function () {
         Route::middleware('perm:flows,read')->get('/', [FlowController::class, 'index']);
