@@ -41,12 +41,14 @@ Route::middleware(['auth:api', 'load.permissions'])->group(function () {
 
         // ============ SIMULATIONS ============
         Route::prefix('flows')->group(function () {
-            Route::middleware('perm:flows,read')->get('/{flow}/simulations', [SimulationController::class, 'index']);
-            Route::middleware('perm:flows,create')->post('/{flow}/simulations', [SimulationController::class, 'store']);
+        Route::middleware('perm:flows,read')->get('/{flow}/simulations', [SimulationController::class, 'index']);
+        Route::middleware('perm:flows,create')->post('/{flow}/simulations', [SimulationController::class, 'store']);
         });
-
+ 
         Route::prefix('simulations')->group(function () {
-            Route::middleware('perm:flows,read')->get('/{simulation}', [SimulationController::class, 'show']);
+        Route::middleware('perm:flows,read')->get('/{simulation}', [SimulationController::class, 'show']);
+        Route::middleware('perm:flows,delete')->delete('/{simulation}', [SimulationController::class, 'destroy']);
+        Route::middleware('perm:flows,update')->put('/{id}/complete', [SimulationController::class, 'complete']); // <-- tanpa "simulations/" di depan
         });
 
         // ============ NODE EXECUTIONS ============
@@ -57,19 +59,14 @@ Route::middleware(['auth:api', 'load.permissions'])->group(function () {
 
         // ============ TEMPLATES ============
         Route::prefix('templates')->group(function () {
-
             Route::middleware('perm:templates,read')
                 ->get('/', [NodeTemplateController::class, 'index']);
-
             Route::middleware('perm:templates,create')
                 ->post('/', [NodeTemplateController::class, 'store']);
-
             Route::middleware('perm:templates,read')
                 ->get('/{template}', [NodeTemplateController::class, 'show']);
-
             Route::middleware('perm:templates,update')
                 ->put('/{template}', [NodeTemplateController::class, 'update']);
-
             Route::middleware('perm:templates,delete')
                 ->delete('/{template}', [NodeTemplateController::class, 'destroy']);
         });
@@ -93,13 +90,19 @@ Route::middleware(['auth:api', 'load.permissions'])->group(function () {
         Route::middleware('perm:flows,delete')->delete('/{node}', [FlowNodeController::class, 'destroy']);
     });
 
-    // ============ USERS (contoh read-only) ============
-    Route::prefix('users')->group(function () {
-        Route::middleware('perm:users,read')->get('/', [UserController::class, 'index']);
-        Route::middleware('perm:users,read')->get('/{user}', [UserController::class, 'show']);
-        // create/update/delete sengaja TIDAK didaftarkan -- module ini read-only.
-        // Kalau ternyata butuh create/update/delete juga, tambahkan seperti pola "flows" di atas.
-    });
+    // ============ USERS ============
+    Route::prefix('users')->middleware('role:admin')->group(function () {
+    Route::middleware('perm:users,read')
+        ->get('/', [UserController::class,'index']);
+    Route::middleware('perm:users,create')
+        ->post('/', [UserController::class,'store']);
+    Route::middleware('perm:users,read')
+        ->get('/{user}', [UserController::class,'show']);
+    Route::middleware('perm:users,update')
+        ->put('/{user}', [UserController::class,'update']);
+    Route::middleware('perm:users,delete')
+        ->delete('/{user}', [UserController::class,'destroy']);
+});
 
     // ============ PERMISSIONS (manajemen role x module x option) ============
     Route::prefix('permissions')->group(function () {
