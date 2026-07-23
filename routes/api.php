@@ -10,17 +10,41 @@ use App\Http\Controllers\Api\FlowConnectionController;
 use App\Http\Controllers\Api\SimulationController;
 use App\Http\Controllers\Api\NodeExecutionController;
 use App\Http\Controllers\Api\NodeTemplateController;
+use App\Mail\TestMail;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\SendOtpMail;
+
+
 
 Route::prefix('auth')->group(function () {
 
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
     Route::middleware('auth:api')->group(function () {
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::post('/logout', [AuthController::class, 'logout']);
+         Route::put('/change-password', [AuthController::class, 'changePassword']);
+         
     });
+
 });
+            // ===============================
+            // TEST EMAIL (sementara)
+            // ===============================
+            Route::get('/test-email', function () {
+
+                Mail::to('azkaim1809@gmail.com')
+                    ->send(new SendOtpMail(123456));
+
+                return response()->json([
+                    'message' => 'Email berhasil dikirim'
+                ]);
+
+            });
 
 // auth:api  -> tetap JWT punya kamu, cek user login
 // load.permissions -> eager load role.permissions.module sekali di awal (hindari N+1)
