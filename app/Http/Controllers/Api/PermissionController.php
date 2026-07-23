@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use App\Models\Permissions;
+use App\Models\Permission;
+
 
 
 class PermissionController extends Controller
@@ -16,7 +17,9 @@ class PermissionController extends Controller
     public function index()
 
     {
+
         $permissions = Permissions::with(['role', 'module'])->get();
+
 
 
         return $this->success($permissions, 'Data permission berhasil diambil');
@@ -32,7 +35,9 @@ class PermissionController extends Controller
         ]);
 
 
+
         $permission = Permissions::create($validated);
+
 
 
 
@@ -43,7 +48,9 @@ class PermissionController extends Controller
     public function show($id)
 
     {
+
         $permission = Permissions::with(['role', 'module'])->find($id);
+
 
 
 
@@ -58,7 +65,9 @@ class PermissionController extends Controller
     public function update(Request $request, $id)
 
     {
+
         $permission = Permissions::find($id);
+
 
 
 
@@ -81,7 +90,9 @@ class PermissionController extends Controller
     public function destroy($id)
 
     {
+
         $permission = Permissions::find($id);
+
 
 
         if (!$permission) {

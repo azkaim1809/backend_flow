@@ -1,22 +1,32 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class NodeExecution extends Model
 {
-    const UPDATED_AT = null; // tidak ada kolom updated_at
+    protected $table = 'node_executions';
+
+    public $timestamps = false;
 
     protected $fillable = [
-        'simulation_id', 'flow_node_id', 'node_label', 'node_type',
-        'status', 'input_data', 'output_data', 'message',
-        'duration_ms', 'executed_at', 'error_message',
+        'simulation_id',
+        'flow_node_id',
+        'node_label',
+        'node_type',
+        'status',
+        'input_data',
+        'output_data',
+        'message',
+        'duration_ms',
+        'executed_at',
+        'error_message',
     ];
 
     protected $casts = [
         'input_data' => 'array',
         'output_data' => 'array',
-        'executed_at' => 'datetime',
     ];
 
     public function simulation()

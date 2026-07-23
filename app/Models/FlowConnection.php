@@ -1,14 +1,21 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class FlowConnection extends Model
 {
-    const UPDATED_AT = null; // tabel ini tidak punya kolom updated_at
+    protected $table = 'flow_connections';
+
+    public $timestamps = false;
 
     protected $fillable = [
-        'flow_id', 'source_node_id', 'target_node_id', 'branch_label',
+        'flow_id',
+        'source_node_id',
+        'target_node_id',
+        'branch_label',
+        'created_at',
     ];
 
     public function flow()

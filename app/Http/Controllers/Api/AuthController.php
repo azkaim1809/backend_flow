@@ -56,4 +56,8 @@ class AuthController extends Controller
     {
         return $this->success(new UserResource(JWTAuth::user()), 'Profile berhasil diambil');
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> c28c76181dccc689ddd544bf9542692ab33b05be
 }
