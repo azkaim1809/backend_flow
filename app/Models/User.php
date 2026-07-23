@@ -57,7 +57,7 @@ class User extends Authenticatable implements JWTSubject
         return false;
     }
 
-    return (bool) ($permissionRow->permission[$action] ?? false);  // <-- "permission", bukan "permissions"
+    return (bool) ($permissionRow->permission[$action] ?? false);  // 
 }
 
     /**

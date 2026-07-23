@@ -4,32 +4,28 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
-     */
-    public function handle($request, Closure $next, ...$roles)
-{
-    $user = Auth::user();
+    public function handle(Request $request, Closure $next, ...$roles): Response
+    {
+        $user = Auth::user();
 
-    if (!$user) {
-        return response()->json([
-            'message' => 'Unauthenticated'
-        ], 401);
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated'
+            ], 401);
+        }
+
+        // Admin = role_id 1
+        if ($user->role_id != 1) {
+            return response()->json([
+                'message' => 'Forbidden. Hanya Admin yang dapat mengakses endpoint ini.'
+            ], 403);
+        }
+
+        return $next($request);
     }
-
-    if (!in_array($user->role->name, $roles)) {
-        return response()->json([
-            'message' => 'Forbidden'
-        ], 403);
-    }
-
-    return $next($request);
-}
 }
