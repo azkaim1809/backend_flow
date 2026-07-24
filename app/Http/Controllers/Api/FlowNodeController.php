@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\FlowNode;
 use App\Traits\ApiResponse;
+use App\Models\Flow;
 
 class FlowNodeController extends Controller
 {
@@ -45,6 +46,13 @@ class FlowNodeController extends Controller
     // Menambahkan node
     public function store(Request $request, $flow)
     {
+
+        // Cek apakah Flow ada
+        $flowData = Flow::find($flow);
+
+        if (!$flowData) {
+            return $this->notFound('Flow tidak ditemukan');
+        }
         $request->validate([
             'template_id' => 'nullable|exists:node_templates,id',
             'label' => 'required|string|max:255',
