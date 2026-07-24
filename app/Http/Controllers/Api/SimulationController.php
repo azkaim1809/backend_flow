@@ -34,12 +34,13 @@ class SimulationController extends Controller
         return $this->success($simulations, 'Data simulasi berhasil diambil');
     }
 
-    // menambahkan data + otomatis bikin NodeExecution, TAPI cuma untuk node yang BENERAN terhubung
+    // menambahkan data + otomatis bikin NodeExecution untuk node yang terhubung,
+    // kasih jeda sebentar, LALU otomatis di-update jadi 'success' -- semua dalam 1 request.
     public function store(Request $request, $flow)
     {
         $request->validate([
             'status' => 'required|string|max:20',
-            'started_at' => 'required|date',
+            'started_at' => 'nullable|date',
             'completed_at' => 'nullable|date',
             'input_data' => 'nullable|array',
             'total_duration_ms' => 'nullable|integer',
@@ -58,33 +59,27 @@ class SimulationController extends Controller
         $connections = FlowConnection::where('flow_id', $flow)->get();
         $hasConnections = $connections->isNotEmpty();
 
-        // Kumpulkan id node mana aja yang BENERAN ikut suatu koneksi --
-        // baik sebagai source_node_id maupun target_node_id.
+        // Kumpulkan id node mana aja yang BENERAN ikut suatu koneksi.
         $connectedNodeIds = $connections->pluck('source_node_id')
             ->merge($connections->pluck('target_node_id'))
             ->unique();
 
-        // Cuma node yang id-nya ada di daftar itu yang akan dieksekusi.
-        // Node yang berdiri sendiri (gak nyambung ke koneksi manapun) di-skip.
         $connectedNodes = $flowNodes->whereIn('id', $connectedNodeIds);
 
+        // ===== TAHAP 1: bikin Simulation + NodeExecution, status 'running' =====
         $simulation = DB::transaction(function () use ($request, $flow, $flowNodes, $hasConnections, $connectedNodes) {
 
             $simulation = Simulation::create([
                 'flow_id' => $flow,
-                // Kalau gak ada koneksi sama sekali, status dipaksa 'success' --
-                // abaikan status yang dikirim client.
-                'status' => $hasConnections ? $request->status : 'success',
-                'started_at' => $request->started_at,
-                'completed_at' => $hasConnections ? $request->completed_at : now(),
+                'status' => $hasConnections ? 'running' : 'success',
+                'started_at' => now(),
+                'completed_at' => $hasConnections ? null : now(),
                 'input_data' => $request->input_data,
                 'total_duration_ms' => $request->total_duration_ms,
                 'created_at' => now(),
             ]);
 
             if ($hasConnections) {
-                // Cuma node yang benar-benar terhubung ke koneksi yang dibuatkan NodeExecution.
-                // Node yang gak nyambung ke koneksi manapun di-skip, walau ada di flow yang sama.
                 foreach ($connectedNodes as $node) {
                     NodeExecution::create([
                         'simulation_id' => $simulation->id,
@@ -95,9 +90,9 @@ class SimulationController extends Controller
                         'input_data' => $node->input_params,
                     ]);
                 }
+                // 
             } else {
-                // Gak ada koneksi sama sekali -> cuma node PERTAMA (order_index terkecil)
-                // yang dibuatkan NodeExecution, dan langsung ditandai 'success'.
+                // Gak ada koneksi -> cuma node pertama, langsung 'success'.
                 $firstNode = $flowNodes->first();
 
                 NodeExecution::create([
@@ -111,24 +106,21 @@ class SimulationController extends Controller
                 ]);
             }
 
+            $completedAt = now();
+                $durationMs = $simulation->started_at
+                    ? (int) $simulation->started_at->diffInMilliseconds($completedAt)
+                    : 0;
+
+            $simulation->update([
+                    'status' => 'success',
+                    'completed_at' => $completedAt,
+                    'total_duration_ms' => $durationMs,
+                ]);
+
             return $simulation;
         });
 
-        $simulation->load('nodeExecutions');
-
-        return $this->success([
-            'id' => $simulation->id,
-            'flow_id' => $simulation->flow_id,
-            'status' => $simulation->status,
-            'started_at' => $simulation->started_at,
-            'completed_at' => $simulation->completed_at,
-            'input_data' => $simulation->input_data,
-            'total_duration_ms' => $simulation->total_duration_ms,
-            'created_at' => $simulation->created_at,
-            'node_executions' => $simulation->nodeExecutions,
-        ], 'Simulasi berhasil dibuat beserta node execution-nya', 201);
     }
-
     // menampilkan data sesuai ID
     public function show($id)
     {
@@ -163,59 +155,5 @@ class SimulationController extends Controller
         $simulation->delete();
 
         return $this->success(null, 'Simulasi berhasil dihapus');
-    }
-
-    // tandai simulasi selesai -- semua node_execution yang masih 'running'
-    // diupdate jadi 'success', simulasi-nya juga diupdate jadi 'success'
-    public function complete($id)
-    {
-        $simulation = Simulation::with('nodeExecutions')->find($id);
-
-        if (!$simulation) {
-            return $this->error('Simulasi tidak ditemukan', 404);
-        }
-
-        if ($simulation->status !== 'running') {
-            return $this->error('Simulasi ini bukan sedang running, gak bisa di-complete', 422);
-        }
-
-        DB::transaction(function () use ($simulation) {
-
-            // Update semua NodeExecution yang masih 'running' jadi 'success',
-            // sekaligus catat waktu selesainya.
-            $simulation->nodeExecutions()
-                ->where('status', 'running')
-                ->update([
-                    'status' => 'success',
-                    'executed_at' => now(),
-                ]);
-
-            // Hitung durasi total dari started_at sampai sekarang (dalam milidetik).
-            $completedAt = now();
-
-            $durationMs = $simulation->started_at
-                ? (int) $simulation->started_at->diffInMilliseconds($completedAt)
-                : 0;
-
-            $simulation->update([
-                'status' => 'success',
-                'completed_at' => $completedAt,
-                'total_duration_ms' => $durationMs,
-            ]);
-        });
-
-        $simulation->refresh()->load('nodeExecutions');
-
-        return $this->success([
-            'id' => $simulation->id,
-            'flow_id' => $simulation->flow_id,
-            'status' => $simulation->status,
-            'started_at' => $simulation->started_at,
-            'completed_at' => $simulation->completed_at,
-            'input_data' => $simulation->input_data,
-            'total_duration_ms' => $simulation->total_duration_ms,
-            'created_at' => $simulation->created_at,
-            'node_executions' => $simulation->nodeExecutions,
-        ], 'Simulasi berhasil ditandai selesai');
     }
 }

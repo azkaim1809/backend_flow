@@ -5,134 +5,127 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Flow;
+use App\Traits\ApiResponse;
 
 class FlowController extends Controller
 {
-    //all flow
-   public function index()
-{
-    $flows = Flow::select(
-        'name',
-        'description',
-        'version',
-        'status',
-        'created_at',
-        'updated_at'
-    )->get();
+    use ApiResponse;
 
-    return response()->json([
-        'message' => 'Data flow berhasil diambil',
-        'data' => $flows
-    ]);
-}
+    // Semua flow
+    public function index()
+    {
+        $flows = Flow::select(
+            'id',
+            'name',
+            'description',
+            'version',
+            'status',
+            'created_at',
+            'updated_at'
+        )->get();
 
-    //menambahkan
+        return $this->success(
+            $flows,
+            'Data flow berhasil diambil'
+        );
+    }
+
+    // Menambahkan
     public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:100',
-        'description' => 'nullable|string',
-        'version' => 'required|string|max:20',
-        'status' => 'required|string|max:20',
-    ]);
+    {
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'version' => 'required|string|max:20',
+            'status' => 'required|string|max:20',
+        ]);
 
-    $flow = Flow::create([
-        'name' => $request->name,
-        'description' => $request->description,
-        'version' => $request->version,
-        'status' => $request->status,
-    ]);
+        $flow = Flow::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'version' => $request->version,
+            'status' => $request->status,
+        ]);
 
-    return response()->json([
-        'message' => 'Flow berhasil ditambahkan',
-        'data' => [
+        return $this->success([
+            'id' => $flow->id,
             'name' => $flow->name,
             'description' => $flow->description,
             'version' => $flow->version,
             'status' => $flow->status,
             'created_at' => $flow->created_at,
             'updated_at' => $flow->updated_at,
-        ]
-    ], 201);
-}
+        ], 'Flow berhasil ditambahkan', 201);
+    }
 
-    // melihat berdasarkan ID
+    // Melihat berdasarkan ID
     public function show($id)
-{
-    $flow = Flow::find($id);
+    {
+        $flow = Flow::find($id);
 
-    if (!$flow) {
-        return response()->json([
-            'message' => 'Flow tidak ditemukan'
-        ], 404);
-    }
+        if (!$flow) {
+            return $this->notFound('Flow tidak ditemukan');
+        }
 
-    return response()->json([
-        'message' => 'Data flow berhasil diambil',
-        'data' => [
+        return $this->success([
+            'id' => $flow->id,
             'name' => $flow->name,
             'description' => $flow->description,
             'version' => $flow->version,
             'status' => $flow->status,
             'created_at' => $flow->created_at,
             'updated_at' => $flow->updated_at,
-        ]
-    ]);
-}
+        ], 'Data flow berhasil diambil');
+    }
 
-    // update data berdasarkan ID
+    // Update berdasarkan ID
     public function update(Request $request, $id)
-{
-    $flow = Flow::find($id);
+    {
+        $flow = Flow::find($id);
 
-    if (!$flow) {
-        return response()->json([
-            'message' => 'Flow tidak ditemukan'
-        ], 404);
-    }
+        if (!$flow) {
+            return $this->notFound('Flow tidak ditemukan');
+        }
 
-    $request->validate([
-        'name' => 'required|string|max:100',
-        'description' => 'nullable|string',
-        'version' => 'required|string|max:20',
-        'status' => 'required|string|max:20',
-    ]);
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'version' => 'required|string|max:20',
+            'status' => 'required|string|max:20',
+        ]);
 
-    $flow->name = $request->name;
-    $flow->description = $request->description;
-    $flow->version = $request->version;
-    $flow->status = $request->status;
+        $flow->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'version' => $request->version,
+            'status' => $request->status,
+        ]);
 
-    $flow->save();
-
-    return response()->json([
-        'message' => 'Flow berhasil diperbarui',
-        'data' => [
+        return $this->success([
+            'id' => $flow->id,
             'name' => $flow->name,
             'description' => $flow->description,
             'version' => $flow->version,
             'status' => $flow->status,
             'created_at' => $flow->created_at,
             'updated_at' => $flow->updated_at,
-        ]
-    ]);
-}
-
-    // delet
-    public function destroy($id)
-{
-    $flow = Flow::find($id);
-
-    if (!$flow) {
-        return response()->json([
-            'message' => 'Flow tidak ditemukan'
-        ], 404);
+        ], 'Flow berhasil diperbarui');
     }
 
-    $flow->delete();
+    // Hapus
+    public function destroy($id)
+    {
+        $flow = Flow::find($id);
 
-    return response()->json([
-        'message' => 'Flow berhasil dihapus'
-    ]);
-}
+        if (!$flow) {
+            return $this->notFound('Flow tidak ditemukan');
+        }
+
+        $flow->delete();
+
+        return $this->success(
+            null,
+            'Flow berhasil dihapus'
+        );
+    }
 }

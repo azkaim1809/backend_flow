@@ -14,7 +14,6 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
-use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Models\PasswordResetToken;
 use App\Mail\SendOtpMail;
 use Illuminate\Support\Facades\Mail;
@@ -106,10 +105,10 @@ class AuthController extends Controller
             // Hapus OTP lama jika ada
             PasswordResetToken::where('email', $request->email)->delete();
 
-            // Simpan OTP baru
+            // Simpan OTP baru (DI-HASH)
             PasswordResetToken::create([
                 'email' => $request->email,
-                'otp' => $otp,
+                'otp' => Hash::make($otp),
                 'expired_at' => now()->addMinutes(5),
             ]);
 
@@ -121,67 +120,49 @@ class AuthController extends Controller
             ]);
         }
 
-            public function verifyOtp(VerifyOtpRequest $request)
-        {
-            $otp = PasswordResetToken::where('email', $request->email)
-                ->where('otp', $request->otp)
-                ->first();
+           public function resetPassword(ResetPasswordRequest $request)
+            {
+                // Cari OTP berdasarkan email
+                $resetToken = PasswordResetToken::where('email', $request->email)->first();
 
-            if (!$otp) {
+                if (!$resetToken) {
+                    return response()->json([
+                        'message' => 'OTP tidak valid.'
+                    ], 400);
+                }
+
+                // Cek OTP yang di-hash
+                if (!Hash::check($request->otp, $resetToken->otp)) {
+                    return response()->json([
+                        'message' => 'OTP tidak valid.'
+                    ], 400);
+                }
+
+                // Cek masa berlaku OTP
+                if ($resetToken->expired_at->isPast()) {
+                    return response()->json([
+                        'message' => 'OTP sudah kadaluarsa.'
+                    ], 400);
+                }
+
+                // Cari user
+                $user = User::where('email', $request->email)->first();
+
+                if (!$user) {
+                    return response()->json([
+                        'message' => 'User tidak ditemukan.'
+                    ], 404);
+                }
+
+                // Update password
+                $user->password = Hash::make($request->password);
+                $user->save();
+
+                // Hapus OTP agar tidak bisa dipakai lagi
+                $resetToken->delete();
+
                 return response()->json([
-                    'message' => 'OTP tidak valid.'
-                ], 400);
+                    'message' => 'Password berhasil direset.'
+                ]);
             }
-
-            if ($otp->expired_at->isPast()) {
-                return response()->json([
-                    'message' => 'OTP sudah kadaluarsa.'
-                ], 400);
-            }
-
-            return response()->json([
-                'message' => 'OTP valid.'
-            ]);
-        }
-
-            public function resetPassword(ResetPasswordRequest $request)
-        {
-            // Cari OTP
-            $otp = PasswordResetToken::where('email', $request->email)
-                ->where('otp', $request->otp)
-                ->first();
-
-            if (!$otp) {
-                return response()->json([
-                    'message' => 'OTP tidak valid.'
-                ], 400);
-            }
-
-            // Cek masa berlaku OTP
-            if ($otp->expired_at->isPast()) {
-                return response()->json([
-                    'message' => 'OTP sudah kadaluarsa.'
-                ], 400);
-            }
-
-            // Cari user
-            $user = User::where('email', $request->email)->first();
-
-            if (!$user) {
-                return response()->json([
-                    'message' => 'User tidak ditemukan.'
-                ], 404);
-            }
-
-            // Update password
-            $user->password = Hash::make($request->password);
-            $user->save();
-
-            // Hapus OTP agar tidak bisa dipakai lagi
-            $otp->delete();
-
-            return response()->json([
-                'message' => 'Password berhasil direset.'
-            ]);
-        }
 }

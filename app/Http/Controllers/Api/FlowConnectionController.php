@@ -5,130 +5,123 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\FlowConnection;
+use App\Traits\ApiResponse;
 
 class FlowConnectionController extends Controller
 {
-    //menampilkan keseluruhan
+    use ApiResponse;
+
+    // Menampilkan seluruh koneksi berdasarkan flow
     public function index($flow)
-{
-    $connections = FlowConnection::where('flow_id', $flow)
-        ->select(
-            'flow_id',
-            'source_node_id',
-            'target_node_id',
-            'branch_label',
-            'created_at'
-        )
-        ->get();
+    {
+        $connections = FlowConnection::where('flow_id', $flow)
+            ->select(
+                'id',
+                'flow_id',
+                'source_node_id',
+                'target_node_id',
+                'branch_label',
+                'created_at'
+            )
+            ->get();
 
-    return response()->json([
-        'message' => 'Data koneksi berhasil diambil',
-        'data' => $connections
-    ]);
-}
+        return $this->success(
+            $connections,
+            'Data koneksi berhasil diambil'
+        );
+    }
 
-    //manambahkan
+    // Menambahkan koneksi
     public function store(Request $request, $flow)
-{
-    $request->validate([
-        'source_node_id' => 'required|exists:flow_nodes,id',
-        'target_node_id' => 'required|exists:flow_nodes,id',
-        'branch_label' => 'nullable|string|max:50',
-    ]);
+    {
+        $request->validate([
+            'source_node_id' => 'required|exists:flow_nodes,id',
+            'target_node_id' => 'required|exists:flow_nodes,id',
+            'branch_label' => 'nullable|string|max:50',
+        ]);
 
-    $connection = FlowConnection::create([
-        'flow_id' => $flow,
-        'source_node_id' => $request->source_node_id,
-        'target_node_id' => $request->target_node_id,
-        'branch_label' => $request->branch_label,
-        'created_at' => now(),
-    ]);
+        $connection = FlowConnection::create([
+            'flow_id' => $flow,
+            'source_node_id' => $request->source_node_id,
+            'target_node_id' => $request->target_node_id,
+            'branch_label' => $request->branch_label,
+            'created_at' => now(),
+        ]);
 
-    return response()->json([
-        'message' => 'Koneksi berhasil ditambahkan',
-        'data' => [
+        return $this->success([
+            'id' => $connection->id,
             'flow_id' => $connection->flow_id,
             'source_node_id' => $connection->source_node_id,
             'target_node_id' => $connection->target_node_id,
             'branch_label' => $connection->branch_label,
             'created_at' => $connection->created_at,
-        ]
-    ], 201);
-}
+        ], 'Koneksi berhasil ditambahkan', 201);
+    }
 
-    //menampilkan sesuai ID
+    // Menampilkan koneksi berdasarkan ID
     public function show($id)
-{
-    $connection = FlowConnection::find($id);
+    {
+        $connection = FlowConnection::find($id);
 
-    if (!$connection) {
-        return response()->json([
-            'message' => 'Koneksi tidak ditemukan'
-        ], 404);
-    }
+        if (!$connection) {
+            return $this->notFound('Koneksi tidak ditemukan');
+        }
 
-    return response()->json([
-        'message' => 'Data koneksi berhasil diambil',
-        'data' => [
+        return $this->success([
+            'id' => $connection->id,
             'flow_id' => $connection->flow_id,
             'source_node_id' => $connection->source_node_id,
             'target_node_id' => $connection->target_node_id,
             'branch_label' => $connection->branch_label,
             'created_at' => $connection->created_at,
-        ]
-    ]);
-}
+        ], 'Data koneksi berhasil diambil');
+    }
 
-    //update data
+    // Update koneksi
     public function update(Request $request, $id)
-{
-    $connection = FlowConnection::find($id);
+    {
+        $connection = FlowConnection::find($id);
 
-    if (!$connection) {
-        return response()->json([
-            'message' => 'Koneksi tidak ditemukan'
-        ], 404);
-    }
+        if (!$connection) {
+            return $this->notFound('Koneksi tidak ditemukan');
+        }
 
-    $request->validate([
-        'source_node_id' => 'required|exists:flow_nodes,id',
-        'target_node_id' => 'required|exists:flow_nodes,id',
-        'branch_label' => 'nullable|string|max:50',
-    ]);
+        $request->validate([
+            'source_node_id' => 'required|exists:flow_nodes,id',
+            'target_node_id' => 'required|exists:flow_nodes,id',
+            'branch_label' => 'nullable|string|max:50',
+        ]);
 
-    $connection->update([
-        'source_node_id' => $request->source_node_id,
-        'target_node_id' => $request->target_node_id,
-        'branch_label' => $request->branch_label,
-    ]);
+        $connection->update([
+            'source_node_id' => $request->source_node_id,
+            'target_node_id' => $request->target_node_id,
+            'branch_label' => $request->branch_label,
+        ]);
 
-    return response()->json([
-        'message' => 'Koneksi berhasil diperbarui',
-        'data' => [
+        return $this->success([
+            'id' => $connection->id,
             'flow_id' => $connection->flow_id,
             'source_node_id' => $connection->source_node_id,
             'target_node_id' => $connection->target_node_id,
             'branch_label' => $connection->branch_label,
             'created_at' => $connection->created_at,
-        ]
-    ]);
-}
-
-    //delet
-    public function destroy($id)
-{
-    $connection = FlowConnection::find($id);
-
-    if (!$connection) {
-        return response()->json([
-            'message' => 'Koneksi tidak ditemukan'
-        ], 404);
+        ], 'Koneksi berhasil diperbarui');
     }
 
-    $connection->delete();
+    // Hapus koneksi
+    public function destroy($id)
+    {
+        $connection = FlowConnection::find($id);
 
-    return response()->json([
-        'message' => 'Koneksi berhasil dihapus'
-    ]);
-}
+        if (!$connection) {
+            return $this->notFound('Koneksi tidak ditemukan');
+        }
+
+        $connection->delete();
+
+        return $this->success(
+            null,
+            'Koneksi berhasil dihapus'
+        );
+    }
 }

@@ -5,79 +5,81 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\FlowNode;
+use App\Traits\ApiResponse;
 
 class FlowNodeController extends Controller
 {
-    //ALL flownode
+    use ApiResponse;
+
+    // Semua node berdasarkan flow
     public function index($flow)
-{
-    
-    $nodes = FlowNode::where('flow_id', $flow)
-        ->select(
-            'flow_id',
-            'template_id',
-            'label',
-            'node_type',
-            'icon',
-            'color',
-            'pos_x',
-            'pos_y',
-            'input_params',
-            'validation_rules',
-            'process_logic',
-            'output_template',
-            'condition_expression',
-            'order_index',
-            'created_at',
-            'updated_at'
-        )
-        ->get();
+    {
+        $nodes = FlowNode::where('flow_id', $flow)
+            ->select(
+                'id',
+                'flow_id',
+                'template_id',
+                'label',
+                'node_type',
+                'icon',
+                'color',
+                'pos_x',
+                'pos_y',
+                'input_params',
+                'validation_rules',
+                'process_logic',
+                'output_template',
+                'condition_expression',
+                'order_index',
+                'created_at',
+                'updated_at'
+            )
+            ->get();
 
-    return response()->json([
-        'message' => 'Data node berhasil diambil',
-        'data' => $nodes
-    ]);
-}
+        return $this->success(
+            $nodes,
+            'Data node berhasil diambil'
+        );
+    }
 
-    // menambahkan
+    // Menambahkan node
     public function store(Request $request, $flow)
-{
-    $request->validate([
-        'template_id' => 'required|exists:node_templates,id',
-        'label' => 'required|string|max:255',
-        'node_type' => 'required|string|max:50',
-        'icon' => 'nullable|string|max:50',
-        'color' => 'nullable|string|max:20',
-        'pos_x' => 'required|numeric',
-        'pos_y' => 'required|numeric',
-        'input_params' => 'nullable|array',
-        'validation_rules' => 'nullable|string',
-        'process_logic' => 'nullable|string',
-        'output_template' => 'nullable|array',
-        'condition_expression' => 'nullable|string',
-        'order_index' => 'required|integer',
-    ]);
+    {
+        $request->validate([
+            'template_id' => 'nullable|exists:node_templates,id',
+            'label' => 'required|string|max:255',
+            'node_type' => 'required|string|max:50',
+            'icon' => 'nullable|string|max:50',
+            'color' => 'nullable|string|max:20',
+            'pos_x' => 'required|numeric',
+            'pos_y' => 'required|numeric',
+            'input_params' => 'nullable|array',
+            'validation_rules' => 'nullable|string',
+            'process_logic' => 'nullable|string',
+            'output_template' => 'nullable|array',
+            'condition_expression' => 'nullable|string',
+            'order_index' => 'required|integer',
+        ]);
 
-    $node = FlowNode::create([
-        'flow_id' => $flow,
-        'template_id' => $request->template_id,
-        'label' => $request->label,
-        'node_type' => $request->node_type,
-        'icon' => $request->icon,
-        'color' => $request->color,
-        'pos_x' => $request->pos_x,
-        'pos_y' => $request->pos_y,
-        'input_params' => $request->input_params,
-        'validation_rules' => $request->validation_rules,
-        'process_logic' => $request->process_logic,
-        'output_template' => $request->output_template,
-        'condition_expression' => $request->condition_expression,
-        'order_index' => $request->order_index,
-    ]);
+        $node = FlowNode::create([
+            'flow_id' => $flow,
+            'template_id' => $request->template_id,
+            'label' => $request->label,
+            'node_type' => $request->node_type,
+            'icon' => $request->icon,
+            'color' => $request->color,
+            'pos_x' => $request->pos_x,
+            'pos_y' => $request->pos_y,
+            'input_params' => $request->input_params,
+            'validation_rules' => $request->validation_rules,
+            'process_logic' => $request->process_logic,
+            'output_template' => $request->output_template,
+            'condition_expression' => $request->condition_expression,
+            'order_index' => $request->order_index,
+        ]);
 
-    return response()->json([
-        'message' => 'Node berhasil ditambahkan',
-        'data' => [
+        return $this->success([
+            'id' => $node->id,
             'flow_id' => $node->flow_id,
             'template_id' => $node->template_id,
             'label' => $node->label,
@@ -94,24 +96,20 @@ class FlowNodeController extends Controller
             'order_index' => $node->order_index,
             'created_at' => $node->created_at,
             'updated_at' => $node->updated_at,
-        ]
-    ], 201);
-}
+        ], 'Node berhasil ditambahkan', 201);
+    }
 
-    // menampilkan dengan ID
+    // Menampilkan node berdasarkan ID
     public function show($id)
-{
-    $node = FlowNode::find($id);
+    {
+        $node = FlowNode::find($id);
 
-    if (!$node) {
-        return response()->json([
-            'message' => 'Node tidak ditemukan'
-        ], 404);
-    }
+        if (!$node) {
+            return $this->notFound('Node tidak ditemukan');
+        }
 
-    return response()->json([
-        'message' => 'Data node berhasil diambil',
-        'data' => [
+        return $this->success([
+            'id' => $node->id,
             'flow_id' => $node->flow_id,
             'template_id' => $node->template_id,
             'label' => $node->label,
@@ -128,56 +126,52 @@ class FlowNodeController extends Controller
             'order_index' => $node->order_index,
             'created_at' => $node->created_at,
             'updated_at' => $node->updated_at,
-        ]
-    ]);
-}
+        ], 'Data node berhasil diambil');
+    }
 
-    //update dengan ID
+    // Update node
     public function update(Request $request, $id)
-{
-    $node = FlowNode::find($id);
+    {
+        $node = FlowNode::find($id);
 
-    if (!$node) {
-        return response()->json([
-            'message' => 'Node tidak ditemukan'
-        ], 404);
-    }
+        if (!$node) {
+            return $this->notFound('Node tidak ditemukan');
+        }
 
-    $request->validate([
-        'template_id' => 'required|exists:node_templates,id',
-        'label' => 'required|string|max:255',
-        'node_type' => 'required|string|max:50',
-        'icon' => 'nullable|string|max:50',
-        'color' => 'nullable|string|max:20',
-        'pos_x' => 'required|numeric',
-        'pos_y' => 'required|numeric',
-        'input_params' => 'nullable|array',
-        'validation_rules' => 'nullable|string',
-        'process_logic' => 'nullable|string',
-        'output_template' => 'nullable|array',
-        'condition_expression' => 'nullable|string',
-        'order_index' => 'required|integer',
-    ]);
+        $request->validate([
+            'template_id' => 'nullable|exists:node_templates,id',
+            'label' => 'required|string|max:255',
+            'node_type' => 'required|string|max:50',
+            'icon' => 'nullable|string|max:50',
+            'color' => 'nullable|string|max:20',
+            'pos_x' => 'required|numeric',
+            'pos_y' => 'required|numeric',
+            'input_params' => 'nullable|array',
+            'validation_rules' => 'nullable|string',
+            'process_logic' => 'nullable|string',
+            'output_template' => 'nullable|array',
+            'condition_expression' => 'nullable|string',
+            'order_index' => 'required|integer',
+        ]);
 
-    $node->update([
-        'template_id' => $request->template_id,
-        'label' => $request->label,
-        'node_type' => $request->node_type,
-        'icon' => $request->icon,
-        'color' => $request->color,
-        'pos_x' => $request->pos_x,
-        'pos_y' => $request->pos_y,
-        'input_params' => $request->input_params,
-        'validation_rules' => $request->validation_rules,
-        'process_logic' => $request->process_logic,
-        'output_template' => $request->output_template,
-        'condition_expression' => $request->condition_expression,
-        'order_index' => $request->order_index,
-    ]);
+        $node->update([
+            'template_id' => $request->template_id,
+            'label' => $request->label,
+            'node_type' => $request->node_type,
+            'icon' => $request->icon,
+            'color' => $request->color,
+            'pos_x' => $request->pos_x,
+            'pos_y' => $request->pos_y,
+            'input_params' => $request->input_params,
+            'validation_rules' => $request->validation_rules,
+            'process_logic' => $request->process_logic,
+            'output_template' => $request->output_template,
+            'condition_expression' => $request->condition_expression,
+            'order_index' => $request->order_index,
+        ]);
 
-    return response()->json([
-        'message' => 'Node berhasil diperbarui',
-        'data' => [
+        return $this->success([
+            'id' => $node->id,
             'flow_id' => $node->flow_id,
             'template_id' => $node->template_id,
             'label' => $node->label,
@@ -194,25 +188,23 @@ class FlowNodeController extends Controller
             'order_index' => $node->order_index,
             'created_at' => $node->created_at,
             'updated_at' => $node->updated_at,
-        ]
-    ]);
-}
-
-    // delet
-    public function destroy($id)
-{
-    $node = FlowNode::find($id);
-
-    if (!$node) {
-        return response()->json([
-            'message' => 'Node tidak ditemukan'
-        ], 404);
+        ], 'Node berhasil diperbarui');
     }
 
-    $node->delete();
+    // Hapus node
+    public function destroy($id)
+    {
+        $node = FlowNode::find($id);
 
-    return response()->json([
-        'message' => 'Node berhasil dihapus'
-    ]);
-}
+        if (!$node) {
+            return $this->notFound('Node tidak ditemukan');
+        }
+
+        $node->delete();
+
+        return $this->success(
+            null,
+            'Node berhasil dihapus'
+        );
+    }
 }
