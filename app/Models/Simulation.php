@@ -6,35 +6,31 @@ use Illuminate\Database\Eloquent\Model;
 
 class Simulation extends Model
 {
-    // Tabel `simulations` cuma punya kolom `created_at`, gak ada `updated_at`.
-    // Matikan auto-timestamp Eloquent, kita isi created_at manual di Controller.
-    public $timestamps = false;
+    // tabel ini cuma punya created_at, tidak ada updated_at
+    const UPDATED_AT = null;
 
     protected $fillable = [
-        'flow_id',
         'status',
         'started_at',
         'completed_at',
         'input_data',
         'total_duration_ms',
-        'created_at',
+        'flow_id',
     ];
 
-    protected function casts(): array
+    protected $casts = [
+        'input_data' => 'array',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+    ];
+
+     public function nodeExecutions()
     {
-        return [
-            'input_data'   => 'array',
-            'started_at'   => 'datetime',
-            'completed_at' => 'datetime',
-        ];
+        return $this->hasMany(NodeExecution::class);
     }
 
-    public function flow()
-    {
-        return $this->belongsTo(Flow::class);
-    }
 
-    public function nodeExecutions()
+    public function executions()
     {
         return $this->hasMany(NodeExecution::class);
     }

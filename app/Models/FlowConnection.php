@@ -6,22 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class FlowConnection extends Model
 {
-    protected $table = 'flow_connections';
-
-    public $timestamps = false;
+    // tabel ini cuma punya created_at, tidak ada updated_at
+    const UPDATED_AT = null;
 
     protected $fillable = [
-        'flow_id',
         'source_node_id',
         'target_node_id',
         'branch_label',
-        'created_at',
+        'flow_id',
     ];
-
-    public function flow()
-    {
-        return $this->belongsTo(Flow::class);
-    }
 
     public function sourceNode()
     {

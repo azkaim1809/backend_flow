@@ -6,10 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FlowNode extends Model
 {
-    protected $table = 'flow_nodes';
-
     protected $fillable = [
-        'flow_id',
         'template_id',
         'label',
         'node_type',
@@ -23,6 +20,7 @@ class FlowNode extends Model
         'output_template',
         'condition_expression',
         'order_index',
+        'flow_id',
     ];
 
     protected $casts = [
@@ -30,13 +28,13 @@ class FlowNode extends Model
         'output_template' => 'array',
     ];
 
-    public function flow()
+    public function connectionsFrom()
     {
-        return $this->belongsTo(Flow::class);
+        return $this->hasMany(FlowConnection::class, 'source_node_id');
     }
 
-    public function template()
+    public function connectionsTo()
     {
-        return $this->belongsTo(NodeTemplate::class, 'template_id');
+        return $this->hasMany(FlowConnection::class, 'target_node_id');
     }
 }

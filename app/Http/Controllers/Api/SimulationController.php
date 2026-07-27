@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\FlowConnection;
 use App\Models\FlowNode;
-use App\Models\NodeExecution;
 use App\Models\Simulation;
+use App\Services\NodeExecutionService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +14,14 @@ class SimulationController extends Controller
 {
     use ApiResponse;
 
-    // menampilkan keseluruhan data
+    // batas pengaman biar tidak infinite loop kalau flow-nya ternyata siklik
+    protected int $maxSteps = 100;
+
+    public function __construct(protected NodeExecutionService $nodeExecutionService)
+    {
+    }
+
+    // menampilkan keseluruhan data simulasi milik satu flow
     public function index($flow)
     {
         $simulations = Simulation::where('flow_id', $flow)
@@ -34,19 +40,14 @@ class SimulationController extends Controller
         return $this->success($simulations, 'Data simulasi berhasil diambil');
     }
 
-    // menambahkan data + otomatis bikin NodeExecution untuk node yang terhubung,
-    // kasih jeda sebentar, LALU otomatis di-update jadi 'success' -- semua dalam 1 request.
+    // menjalankan simulasi: mulai dari node pertama, evaluasi tiap kondisi,
+    // ikuti cabang true/false sampai mentok -- hanya node yang BENERAN dilewati yang dicatat
     public function store(Request $request, $flow)
     {
         $request->validate([
-            'status' => 'required|string|max:20',
-            'started_at' => 'nullable|date',
-            'completed_at' => 'nullable|date',
             'input_data' => 'nullable|array',
-            'total_duration_ms' => 'nullable|integer',
         ]);
 
-        // Ambil semua node dari flow ini, urut sesuai order_index.
         $flowNodes = FlowNode::where('flow_id', $flow)
             ->orderBy('order_index')
             ->get();
@@ -55,73 +56,70 @@ class SimulationController extends Controller
             return $this->error('Flow ini belum punya node, simulasi tidak bisa dibuat', 422);
         }
 
-        // Ambil semua koneksi milik flow ini.
-        $connections = FlowConnection::where('flow_id', $flow)->get();
-        $hasConnections = $connections->isNotEmpty();
-
-        // Kumpulkan id node mana aja yang BENERAN ikut suatu koneksi.
-        $connectedNodeIds = $connections->pluck('source_node_id')
-            ->merge($connections->pluck('target_node_id'))
-            ->unique();
-
-        $connectedNodes = $flowNodes->whereIn('id', $connectedNodeIds);
-
-        // ===== TAHAP 1: bikin Simulation + NodeExecution, status 'running' =====
-        $simulation = DB::transaction(function () use ($request, $flow, $flowNodes, $hasConnections, $connectedNodes) {
+        $simulation = DB::transaction(function () use ($request, $flow, $flowNodes) {
 
             $simulation = Simulation::create([
                 'flow_id' => $flow,
-                'status' => $hasConnections ? 'running' : 'success',
+                'status' => 'running',
                 'started_at' => now(),
-                'completed_at' => $hasConnections ? null : now(),
-                'input_data' => $request->input_data,
-                'total_duration_ms' => $request->total_duration_ms,
-                'created_at' => now(),
+                'input_data' => $request->input('input_data', []),
             ]);
 
-            if ($hasConnections) {
-                foreach ($connectedNodes as $node) {
-                    NodeExecution::create([
-                        'simulation_id' => $simulation->id,
-                        'flow_node_id' => $node->id,
-                        'node_label' => $node->label,
-                        'node_type' => $node->node_type,
-                        'status' => 'running',
-                        'input_data' => $node->input_params,
-                    ]);
-                }
-                // 
-            } else {
-                // Gak ada koneksi -> cuma node pertama, langsung 'success'.
-                $firstNode = $flowNodes->first();
+            $context = $simulation->input_data ?? [];
 
-                NodeExecution::create([
-                    'simulation_id' => $simulation->id,
-                    'flow_node_id' => $firstNode->id,
-                    'node_label' => $firstNode->label,
-                    'node_type' => $firstNode->node_type,
-                    'status' => 'success',
-                    'input_data' => $firstNode->input_params,
-                    'executed_at' => now(),
-                ]);
+            // node awal = order_index paling kecil
+            $currentNode = $flowNodes->first();
+            $overallStatus = 'success';
+            $steps = 0;
+
+            while ($currentNode && $steps < $this->maxSteps) {
+                $execution = $this->nodeExecutionService->execute($currentNode, $simulation->id, $context);
+                $steps++;
+
+                if ($execution->status !== 'success') {
+                    // node ini gagal (variabel hilang / expression error / koneksi tidak ditemukan)
+                    // -> hentikan simulasi di sini, jangan lanjut ke node berikutnya
+                    $overallStatus = 'failed';
+                    $currentNode = null;
+                    break;
+                }
+
+                $nextNodeId = $execution->output_data['next_node_id'] ?? null;
+
+                if (!$nextNodeId) {
+                    // tidak ada koneksi lanjutan -> flow selesai normal di titik ini
+                    $currentNode = null;
+                    break;
+                }
+
+                $currentNode = $flowNodes->firstWhere('id', $nextNodeId)
+                    ?? FlowNode::find($nextNodeId);
+            }
+
+            if ($steps >= $this->maxSteps) {
+                $overallStatus = 'failed';
             }
 
             $completedAt = now();
-                $durationMs = $simulation->started_at
-                    ? (int) $simulation->started_at->diffInMilliseconds($completedAt)
-                    : 0;
+            $durationMs = (int) $simulation->started_at->diffInMilliseconds($completedAt);
 
             $simulation->update([
-                    'status' => 'success',
-                    'completed_at' => $completedAt,
-                    'total_duration_ms' => $durationMs,
-                ]);
+                'status' => $overallStatus,
+                'completed_at' => $completedAt,
+                'total_duration_ms' => $durationMs,
+            ]);
 
             return $simulation;
         });
 
+        return $this->success(
+            $simulation->load('nodeExecutions'),
+            'Simulasi berhasil dijalankan',
+            201
+        );
     }
-    // menampilkan data sesuai ID
+
+    // menampilkan data sesuai ID, lengkap dengan riwayat eksekusi tiap node
     public function show($id)
     {
         $simulation = Simulation::with('nodeExecutions')->find($id);
@@ -141,6 +139,30 @@ class SimulationController extends Controller
             'created_at' => $simulation->created_at,
             'node_executions' => $simulation->nodeExecutions,
         ], 'Detail simulasi berhasil diambil');
+    }
+
+    // finalisasi manual (opsional -- store() sudah otomatis menandai selesai,
+    // ini dipakai kalau butuh override status/durasi secara manual)
+    public function complete($id)
+    {
+        $simulation = Simulation::find($id);
+
+        if (!$simulation) {
+            return $this->error('Simulasi tidak ditemukan', 404);
+        }
+
+        $completedAt = now();
+        $durationMs = $simulation->started_at
+            ? (int) $simulation->started_at->diffInMilliseconds($completedAt)
+            : 0;
+
+        $simulation->update([
+            'status' => 'success',
+            'completed_at' => $completedAt,
+            'total_duration_ms' => $durationMs,
+        ]);
+
+        return $this->success($simulation, 'Simulasi ditandai selesai');
     }
 
     // hapus simulasi

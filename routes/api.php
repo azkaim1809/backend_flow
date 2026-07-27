@@ -84,16 +84,19 @@ Route::middleware(['auth:api', 'load.permissions'])->group(function () {
         Route::middleware('perm:connection,delete')->delete('/{connection}', [FlowConnectionController::class, 'destroy']);
     });
 
-    // ============ SIMULATIONS ============
-    Route::prefix('simulations')->group(function () {
-        Route::middleware('perm:flows,read')->get('/{simulation}', [SimulationController::class, 'show']);
-        Route::middleware('perm:flows,delete')->delete('/{simulation}', [SimulationController::class, 'destroy']);
-        Route::middleware('perm:flows,update')->put('/{id}/complete', [SimulationController::class, 'complete']);
-
-        // ============ NODE EXECUTIONS ============
-        Route::middleware('perm:flows,read')->get('/{simulation}/executions', [NodeExecutionController::class, 'index']);
-    });
-
+    // ============ SIMULATIONS (scoped ke satu flow) ============
+Route::prefix('flows/{flow}/simulations')->group(function () {
+    Route::middleware('perm:flows,read')->get('/', [SimulationController::class, 'index']);
+    Route::middleware('perm:flows,create')->post('/', [SimulationController::class, 'store']);
+});
+ 
+// ============ SIMULATIONS (langsung by id) ============
+Route::prefix('simulations')->group(function () {
+    Route::middleware('perm:flows,read')->get('/{simulation}', [SimulationController::class, 'show']);
+    Route::middleware('perm:flows,delete')->delete('/{simulation}', [SimulationController::class, 'destroy']);
+    Route::middleware('perm:flows,update')->put('/{id}/complete', [SimulationController::class, 'complete']);
+});
+ 
     // ============ TEMPLATES ============
     Route::prefix('templates')->group(function () {
         Route::middleware('perm:templates,read')->get('/', [NodeTemplateController::class, 'index']);

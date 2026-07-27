@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class NodeExecution extends Model
 {
-    protected $table = 'node_executions';
-
+    // tabel ini tidak punya kolom timestamps standar (pakai executed_at sendiri)
     public $timestamps = false;
 
     protected $fillable = [
@@ -27,6 +26,7 @@ class NodeExecution extends Model
     protected $casts = [
         'input_data' => 'array',
         'output_data' => 'array',
+        'executed_at' => 'datetime',
     ];
 
     public function simulation()
