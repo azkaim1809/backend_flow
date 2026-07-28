@@ -25,4 +25,10 @@ class NodeTemplate extends Model
         'default_input_params' => 'array',
         'default_output_template' => 'array',
     ];
+
+    public function flowNodes()
+{
+    return $this->hasMany(FlowNode::class, 'template_id');
+}
+
 }
