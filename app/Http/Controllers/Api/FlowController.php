@@ -12,7 +12,7 @@ class FlowController extends Controller
     use ApiResponse;
 
     // Semua flow
-    public function index()
+      public function index(Request $request)
     {
         $flows = Flow::select(
             'id',
@@ -22,7 +22,17 @@ class FlowController extends Controller
             'status',
             'created_at',
             'updated_at'
-        )->get();
+        );
+
+        if ($request->filled('name')) {
+            $flows->where('name', 'ILIKE', '%' . $request->name . '%');
+        }
+
+        $flows = $flows->get();
+
+        if ($flows->isEmpty()) {
+            return $this->success([], 'Data flow tidak ditemukan');
+        }
 
         return $this->success(
             $flows,

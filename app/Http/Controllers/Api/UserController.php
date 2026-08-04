@@ -13,23 +13,40 @@ class UserController extends Controller
     use ApiResponse;
 
     // Semua user
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::select(
+        $query = User::select(
             'id',
             'role_id',
             'name',
             'email',
             'created_at',
             'updated_at'
-        )->get();
+        );
+
+        if ($request->filled('name')) {
+            $query->where('name', 'ILIKE', '%' . trim($request->name) . '%');
+        }
+
+        if ($request->filled('email')) {
+            $query->where('email', 'ILIKE', '%' . trim($request->email) . '%');
+        }
+
+        $users = $query->get();
+
+        // Jika data kosong
+        if ($users->isEmpty()) {
+            return $this->success(
+                [],
+                'Data user tidak ditemukan'
+            );
+        }
 
         return $this->success(
             $users,
             'Data user berhasil diambil'
         );
     }
-
     // Menambahkan user
     public function store(Request $request)
     {
