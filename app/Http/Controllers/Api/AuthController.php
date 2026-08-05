@@ -45,6 +45,7 @@ class AuthController extends Controller
         }
 
         $user = JWTAuth::user();
+        $user->load('role.permissions.module');
 
         return $this->success([
             'token' => $token,
