@@ -11,6 +11,7 @@
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
         "php-open-source-saver/jwt-auth": "2.8",
+        "resend/resend-laravel": "^1.4",
         "symfony/expression-language": "7.0"
     },
     "require-dev": {
