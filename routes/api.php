@@ -31,19 +31,6 @@ Route::prefix('auth')->group(function () {
     });
 
 });
-            // ===============================
-            // TEST EMAIL (sementara)
-            // ===============================
-            Route::get('/test-email', function () {
-
-                Mail::to('azkaim1809@gmail.com')
-                    ->send(new SendOtpMail(123456));
-
-                return response()->json([
-                    'message' => 'Email berhasil dikirim'
-                ]);
-
-            });
 
 // auth:api  -> tetap JWT punya kamu, cek user login
 // load.permissions -> eager load role.permissions.module sekali di awal (hindari N+1)
@@ -85,10 +72,10 @@ Route::middleware(['auth:api', 'load.permissions'])->group(function () {
     });
 
     // ============ SIMULATIONS (scoped ke satu flow) ============
-Route::prefix('flows/{flow}/simulations')->group(function () {
+    Route::prefix('flows/{flow}/simulations')->group(function () {
     Route::middleware('perm:flows,read')->get('/', [SimulationController::class, 'index']);
     Route::middleware('perm:flows,create')->post('/', [SimulationController::class, 'store']);
-});
+    });
  
 // ============ SIMULATIONS (langsung by id) ============
 Route::prefix('simulations')->group(function () {

@@ -37,18 +37,19 @@ class AuthController extends Controller
 
     //login
     public function login(LoginRequest $request)
-    {
-        if (!$token = JWTAuth::attempt($request->validated())) {
-            return $this->error('Email atau password salah', 401);
-        }
-
-        $user = JWTAuth::user();
-
-        return $this->success([
-            'token' => $token,
-            'user' => new UserResource($user),
-        ], 'Login berhasil');
+{
+    if (!$token = JWTAuth::attempt($request->validated())) {
+        return $this->error('Email atau password salah', 401);
     }
+
+    $user = JWTAuth::user();
+    $user->load('role.permissions.module');
+
+    return $this->success([
+        'token' => $token,
+        'user'  => new UserResource($user),
+    ], 'Login berhasil');
+}
     // logout
     public function logout()
     {
